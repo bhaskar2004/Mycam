@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FRAME — Camera Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --white:#FFFFFF;--off:#F4F2EE;--paper:#EBE8E2;--border:#1A1A1A;
+  --ink:#1A1A1A;--muted:#888;--accent:#E8380D;--rec:#E8380D;--green:#1DB954;
+  --bw:1.5px;
+  --eq:cubic-bezier(0.25,1,0.5,1);
+  --es:cubic-bezier(0.34,1.56,0.64,1);
+  --btn-h:40px;
+  --radius:0px;
+}
+html,body{height:100%;background:var(--off);font-family:'DM Sans',sans-serif;color:var(--ink);overscroll-behavior:none;}
+
+/* CURSOR */
+body{cursor:none;}
+#cursor{position:fixed;width:10px;height:10px;background:var(--ink);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s var(--es),height .2s var(--es);}
+#cursorRing{position:fixed;width:32px;height:32px;border:var(--bw) solid var(--ink);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s var(--eq),top .12s var(--eq),width .25s var(--es),height .25s var(--es);}
+#cursor.rec-mode{background:var(--rec);}
+#cursorRing.rec-mode{border-color:var(--rec);}
+@media(hover:none){#cursor,#cursorRing{display:none;}body{cursor:auto;}}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+@keyframes iconSpin{to{transform:rotate(360deg);}}
+@keyframes iconPop{0%,100%{transform:scale(1);}45%{transform:scale(1.45);}75%{transform:scale(0.88);}}
+@keyframes iconFlip{0%{transform:rotateY(0);}50%{transform:rotateY(90deg);}100%{transform:rotateY(180deg);}}
+@keyframes iconWave{0%{transform:scaleX(1);}50%{transform:scaleX(-1);}100%{transform:scaleX(1);}}
+@keyframes iconWobble{0%,100%{transform:rotate(0);}30%{transform:rotate(-16deg);}70%{transform:rotate(12deg);}}
+@keyframes iconFade{0%{opacity:1;}50%{opacity:0.15;}100%{opacity:1;}}
+@keyframes iconShine{0%{transform:rotate(0) scale(1);}50%{transform:rotate(22deg) scale(1.2);}100%{transform:rotate(0) scale(1);}}
+@keyframes iconPunch{0%{transform:scale(1);}30%{transform:scale(1.6);}65%{transform:scale(0.88);}100%{transform:scale(1);}}
+@keyframes iconDream{0%,100%{transform:scale(1);}30%{transform:scale(1.12) rotate(6deg);}70%{transform:scale(0.92) rotate(-4deg);}}
+@keyframes abSave{0%{transform:translateY(0);}45%{transform:translateY(5px);}100%{transform:translateY(0);}}
+@keyframes abShake{0%,100%{transform:rotate(0);}25%{transform:rotate(-13deg);}75%{transform:rotate(13deg);}}
+@keyframes cBreath{0%,100%{box-shadow:0 0 0 0 rgba(26,26,26,.15);}50%{box-shadow:0 0 0 7px rgba(26,26,26,0);}}
+@keyframes offBreath{0%,100%{border-color:rgba(255,255,255,.1);}50%{border-color:rgba(255,255,255,.4);}}
+@keyframes liveBlink{0%,100%{opacity:1;}50%{opacity:.15;}}
+@keyframes recBlink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes cornerDraw{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:scale(1);}}
+@keyframes focusPulse{0%{opacity:1;transform:translate(-50%,-50%) scale(1.6);}45%{opacity:1;transform:translate(-50%,-50%) scale(1);}75%{opacity:.7;transform:translate(-50%,-50%) scale(1.05);}100%{opacity:.5;transform:translate(-50%,-50%) scale(1);}}
+@keyframes flashAnim{0%{opacity:1;}100%{opacity:0;}}
+@keyframes timerPop{0%{transform:scale(1.3);opacity:0;}30%{transform:scale(1);opacity:1;}90%{transform:scale(.9);opacity:1;}100%{transform:scale(.8);opacity:0;}}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(26,26,26,.4);}100%{box-shadow:0 0 0 24px rgba(26,26,26,0);}}
+@keyframes recRipple{0%{box-shadow:0 0 0 0 rgba(232,56,13,.5);}100%{box-shadow:0 0 0 28px rgba(232,56,13,0);}}
+@keyframes galleryIn{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+@keyframes countPop{from{transform:scale(1.35);}to{transform:scale(1);}}
+@keyframes emptyFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+@keyframes checkPop{from{transform:scale(0);}to{transform:scale(1);}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-50%) translateY(-6px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes recPulseRing{0%{box-shadow:0 0 0 0 rgba(232,56,13,.6);}70%{box-shadow:0 0 0 10px rgba(232,56,13,0);}100%{box-shadow:0 0 0 0 rgba(232,56,13,0);}}
+@keyframes timerTick{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+
+.reveal{opacity:0;animation:fadeUp .5s var(--eq) forwards;}
+.r1{animation-delay:.05s;}.r2{animation-delay:.13s;}.r3{animation-delay:.21s;}.r4{animation-delay:.29s;}.r5{animation-delay:.37s;}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  display:flex;flex-direction:column;
+  background:var(--white);border-bottom:var(--bw) solid var(--border);
+  user-select:none;
+}
+
+/* Row 1: brand + tools */
+.topbar-row1{
+  display:flex;align-items:center;
+  height:48px;border-bottom:var(--bw) solid var(--border);
+}
+
+/* Brand */
+.brand{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:0 18px;border-right:var(--bw) solid var(--border);height:100%;
+  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;cursor:default;
+}
+.brand-icon{
+  position:relative;width:26px;height:26px;flex-shrink:0;
+  border:var(--bw) solid var(--border);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  animation:cBreath 3s ease-in-out infinite;
+}
+.brand-icon::after{content:'';width:9px;height:9px;border:var(--bw) solid var(--border);border-radius:50%;}
+
+/* Spacer pushes tools to the right */
+.topbar-spacer{flex:1;}
+
+/* Right icon-only tools */
+.nav-tools{
+  display:flex;align-items:center;height:100%;
+  border-left:var(--bw) solid var(--border);
+}
+.nav-tool{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:56px;height:100%;gap:4px;
+  border:none;border-right:var(--bw) solid var(--border);
+  background:none;cursor:pointer;color:var(--muted);
+  position:relative;overflow:hidden;transition:color .2s;
+}
+.nav-tool:last-child{border-right:none;}
+.nav-tool::before{
+  content:'';position:absolute;inset:0;
+  background:var(--paper);transform:translateY(101%);
+  transition:transform .2s var(--eq);
+}
+.nav-tool > *{position:relative;z-index:1;}
+.nav-tool:hover::before{transform:translateY(0);}
+.nav-tool:hover{color:var(--ink);}
+.nav-tool.active{background:var(--ink);color:var(--white);}
+.nav-tool.active::before{display:none;}
+.nav-tool svg{width:15px;height:15px;}
+.nav-tool-label{font-family:'Space Mono',monospace;font-size:7px;letter-spacing:1.5px;text-transform:uppercase;}
+.nav-tool:hover .ni-grid{animation:iconPop .45s var(--es);}
+.nav-tool:hover .ni-flip{animation:iconFlip .5s ease;}
+.nav-tool:hover .ni-timer{animation:iconSpin .6s ease;}
+.timer-badge{
+  position:absolute;top:5px;right:7px;
+  font-family:'Space Mono',monospace;font-size:7px;letter-spacing:.5px;
+  background:var(--accent);color:#fff;padding:1px 4px;
+  display:none;z-index:2;
+}
+.timer-badge.show{display:block;}
+
+/* Row 2: mode pill — full width, two equal halves */
+.topbar-row2{
+  display:flex;height:38px;
+}
+.mode-pill-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  height:100%;padding:0;
+  font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  border:none;border-right:var(--bw) solid var(--border);
+  background:none;color:var(--muted);cursor:pointer;
+  position:relative;overflow:hidden;transition:color .2s;
+  white-space:nowrap;
+}
+.mode-pill-btn:last-child{border-right:none;}
+.mode-pill-btn::before{
+  content:'';position:absolute;inset:0;
+  background:var(--ink);transform:translateY(101%);
+  transition:transform .2s var(--eq);
+}
+.mode-pill-btn > *{position:relative;z-index:1;}
+.mode-pill-btn:hover::before{transform:translateY(0);}
+.mode-pill-btn:hover{color:var(--white);}
+.mode-pill-btn.active{background:var(--ink);color:var(--white);}
+.mode-pill-btn.active::before{transform:translateY(0);}
+.mode-pill-btn.vid.active{background:var(--rec);}
+.mode-pill-btn.vid.active::before{background:var(--rec);}
+.mode-pill-btn svg{width:13px;height:13px;flex-shrink:0;}
+
+.rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);animation:recBlink 1s infinite;display:none;flex-shrink:0;}
+.rec-dot.show{display:block;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:liveBlink 1.4s infinite;flex-shrink:0;}
+
+/* ===== LAYOUT ===== */
+.layout{display:grid;grid-template-columns:1fr;max-width:1200px;margin:0 auto;padding-bottom:54px;}
+@media(min-width:900px){
+  .layout{grid-template-columns:minmax(0,1.15fr) minmax(340px,1fr);align-items:start;}
+  .sidebar{position:sticky;top:54px;max-height:calc(100vh - 54px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--paper) transparent;}
+  .sidebar::-webkit-scrollbar{width:3px;}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--paper);}
+}
+.main-col{display:flex;flex-direction:column;border-right:var(--bw) solid var(--border);}
+.sidebar{display:flex;flex-direction:column;}
+
+/* ===== CARD ===== */
+.card{background:var(--white);border-bottom:var(--bw) solid var(--border);}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:var(--bw) solid var(--border);}
+.card-title{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;}
+
+/* ===== BUTTONS — Redesigned ===== */
+/* Base button system */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:var(--btn-h);padding:0 18px;
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  border:var(--bw) solid var(--border);background:none;color:var(--ink);
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:color .22s var(--eq);
+  white-space:nowrap;
+}
+.btn::before{
+  content:'';position:absolute;inset:0;
+  background:var(--ink);
+  transform:translateY(101%);transition:transform .22s var(--eq);
+  z-index:0;
+}
+.btn:hover::before{transform:translateY(0);}
+.btn > *{position:relative;z-index:1;}
+.btn:hover{color:var(--white);}
+.btn svg{width:14px;height:14px;flex-shrink:0;}
+
+/* Variants */
+.btn-solid{background:var(--ink);color:var(--white);}
+.btn-solid::before{background:var(--accent);}
+.btn-solid:hover{color:var(--white);}
+
+.btn-accent{background:var(--accent);color:var(--white);border-color:var(--accent);}
+.btn-accent::before{background:var(--ink);border-color:var(--ink);}
+.btn-accent:hover{color:var(--white);}
+
+.btn-ghost{border:none;padding:0 10px;height:32px;}
+.btn-ghost::before{background:var(--paper);}
+.btn-ghost:hover{color:var(--ink);}
+
+.btn-icon{width:40px;height:40px;padding:0;border:var(--bw) solid var(--border);}
+.btn-icon svg{width:16px;height:16px;}
+
+.btn-sm{height:32px;padding:0 12px;font-size:9px;letter-spacing:1.5px;}
+.btn-sm svg{width:12px;height:12px;}
+
+.btn-lg{height:48px;padding:0 24px;font-size:11px;letter-spacing:2.5px;}
+
+/* REC button special */
+.btn-rec{
+  height:40px;padding:0 20px;gap:10px;
+  background:none;color:var(--ink);border:var(--bw) solid var(--border);
+}
+.btn-rec::before{background:var(--rec);}
+.btn-rec:hover{color:var(--white);}
+.btn-rec .rec-indicator{width:8px;height:8px;border-radius:50%;background:var(--rec);transition:background .2s;}
+.btn-rec:hover .rec-indicator{background:var(--white);}
+.btn-rec.recording{background:var(--rec);color:var(--white);border-color:var(--rec);animation:recPulseRing 2s infinite;}
+.btn-rec.recording::before{background:var(--ink);border-color:var(--ink);}
+.btn-rec.recording:hover{color:var(--white);}
+.btn-rec.recording .rec-indicator{background:var(--white);animation:recBlink 1s infinite;}
+
+/* Badge (legacy compat) */
+.badge{
+  display:inline-flex;align-items:center;height:30px;padding:0 12px;gap:6px;
+  font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  border:var(--bw) solid var(--border);background:none;color:var(--ink);cursor:pointer;
+  position:relative;overflow:hidden;transition:color .2s var(--eq);
+}
+.badge::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .22s var(--eq);}
+.badge:hover::before{transform:translateY(0);}
+.badge > *{position:relative;z-index:1;}
+.badge:hover{color:var(--white);}
+.badge.ab{background:var(--ink);color:var(--white);}
+.badge.ab::before{background:var(--accent);}
+
+/* ===== MODE TOGGLE (Photo / Video) ===== */
+.mode-toggle{display:flex;border-bottom:var(--bw) solid var(--border);background:var(--white);}
+.mode-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:10px;
+  height:46px;padding:0 16px;
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  border:none;border-right:var(--bw) solid var(--border);background:none;
+  color:var(--muted);cursor:pointer;position:relative;overflow:hidden;transition:color .2s;
+}
+.mode-btn:last-child{border-right:none;}
+.mode-btn::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2.5px;background:var(--ink);transform:scaleX(0);transform-origin:center;transition:transform .3s var(--eq);}
+.mode-btn.active{color:var(--ink);}
+.mode-btn.active::after{transform:scaleX(1);}
+.mode-btn.video-mode.active{color:var(--rec);}
+.mode-btn.video-mode.active::after{background:var(--rec);}
+.mode-btn svg{width:16px;height:16px;}
+.mode-btn:hover{color:var(--ink);}
+.mode-btn.video-mode:hover{color:var(--rec);}
+
+/* ===== VIEWFINDER ===== */
+.vf-wrap{position:relative;background:#070707;aspect-ratio:4/3;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+#cameraFeed{width:100%;height:100%;object-fit:cover;display:none;}
+#filterCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+.grid-ov{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background-image:linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);background-size:33.33% 33.33%;}
+.grid-ov.show{opacity:1;}
+.focus-ring{position:absolute;pointer-events:none;width:60px;height:60px;border:1.5px solid rgba(255,220,60,.9);transform:translate(-50%,-50%) scale(1.5);opacity:0;z-index:10;}
+.focus-ring.go{animation:focusPulse .65s var(--eq) forwards;}
+.corner{position:absolute;width:18px;height:18px;border-color:rgba(255,255,255,.75);border-style:solid;}
+.corner.tl{top:12px;left:12px;border-width:1.5px 0 0 1.5px;animation:cornerDraw .4s ease .1s both;}
+.corner.tr{top:12px;right:12px;border-width:1.5px 1.5px 0 0;animation:cornerDraw .4s ease .15s both;}
+.corner.bl{bottom:12px;left:12px;border-width:0 0 1.5px 1.5px;animation:cornerDraw .4s ease .2s both;}
+.corner.br{bottom:12px;right:12px;border-width:0 1.5px 1.5px 0;animation:cornerDraw .4s ease .25s both;}
+.crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;pointer-events:none;}
+.crosshair::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:1.5px;background:rgba(255,255,255,.65);}
+.crosshair::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:1.5px;height:8px;background:rgba(255,255,255,.65);}
+
+/* VF overlays */
+.vf-info{position:absolute;top:10px;right:10px;display:none;flex-direction:column;gap:5px;align-items:flex-end;}
+.info-chip{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:#fff;background:rgba(0,0,0,.45);padding:3px 8px;backdrop-filter:blur(6px);}
+
+/* REC overlay */
+.rec-overlay{position:absolute;top:10px;left:10px;display:none;flex-direction:column;gap:6px;align-items:flex-start;}
+.rec-overlay.show{display:flex;}
+.rec-badge{display:flex;align-items:center;gap:7px;background:rgba(232,56,13,.9);padding:5px 10px;backdrop-filter:blur(6px);}
+.rec-badge-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:recBlink 1s infinite;}
+.rec-badge-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+.rec-timer{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#fff;background:rgba(0,0,0,.5);padding:4px 9px;backdrop-filter:blur(6px);}
+.rec-quality-chip{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#fff;background:rgba(0,0,0,.5);padding:3px 8px;backdrop-filter:blur(6px);}
+
+.cam-offline{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at center,#111 0%,#000 100%);}
+.offline-icon{width:56px;height:56px;border:1.5px solid rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:offBreath 2.5s ease-in-out infinite;}
+.offline-icon svg{color:rgba(255,255,255,.35);animation:iconSpin 8s linear infinite;}
+.offline-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.3);text-align:center;line-height:2;text-transform:uppercase;}
+.btn-enable{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;background:var(--white);color:var(--ink);border:none;padding:14px 28px;cursor:pointer;position:relative;overflow:hidden;}
+.btn-enable::before{content:'';position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .25s var(--eq);}
+.btn-enable:hover::before{transform:scaleX(1);}
+.btn-enable span{position:relative;z-index:1;transition:color .25s;}
+.btn-enable:hover span{color:#fff;}
+.err-badge{display:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--accent);text-align:center;padding:8px 18px;border:1.5px solid var(--accent);line-height:1.8;text-transform:uppercase;}
+.err-badge.show{display:block;}
+.timer-ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.42);z-index:20;}
+.timer-ov.show{display:flex;}
+.timer-num{font-family:'Bebas Neue',sans-serif;font-size:130px;color:#fff;letter-spacing:4px;animation:timerPop 1s ease-in-out;}
+.flash{position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:30;}
+.flash.go{animation:flashAnim .55s ease-out forwards;}
+
+/* ===== ZOOM ROW ===== */
+.zoom-row{display:none;border-bottom:var(--bw) solid var(--border);}
+.zoom-row.vis{display:flex;}
+.zoom-btn{flex:1;padding:0;height:38px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border:none;border-right:var(--bw) solid var(--border);background:var(--white);cursor:pointer;color:var(--ink);transition:background .15s,color .15s;position:relative;overflow:hidden;}
+.zoom-btn:last-child{border-right:none;}
+.zoom-btn::before{content:'';position:absolute;inset:0;background:var(--paper);transform:translateY(101%);transition:transform .18s var(--eq);}
+.zoom-btn span{position:relative;z-index:1;}
+.zoom-btn:hover::before{transform:translateY(0);}
+.zoom-btn.az{background:var(--ink);color:var(--white);}
+.zoom-btn.az::before{background:var(--accent);}
+.zoom-btn.az:hover{color:var(--white);}
+
+/* ===== ACTION BAR ===== */
+.action-bar{display:flex;border-bottom:var(--bw) solid var(--border);background:var(--white);}
+.abt{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:14px 4px;border:none;border-right:var(--bw) solid var(--border);background:none;cursor:pointer;
+  color:var(--ink);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  transition:background .15s,color .15s;position:relative;overflow:hidden;
+}
+.abt:last-child{border-right:none;}
+.abt::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .2s var(--eq);z-index:0;}
+.abt:hover::before{transform:translateY(0);}
+.abt > *{position:relative;z-index:1;transition:color .2s;}
+.abt:hover > *{color:var(--white)!important;}
+.abt svg{width:18px;height:18px;}
+.abt:hover .ab-save{animation:abSave .5s var(--es);}
+.abt:hover .ab-clear{animation:abShake .45s ease;}
+.abt:hover .ab-reset{animation:iconSpin .5s ease;}
+.abt:hover .ab-all{animation:iconPop .4s var(--es);}
+.abt-label{font-size:8px;letter-spacing:1.5px;}
+
+/* ===== SHUTTER & RECORD CONTROLS ===== */
+.capture-row{display:flex;align-items:center;border-bottom:var(--bw) solid var(--border);background:var(--white);}
+.shutter-wrap{padding:16px 18px;display:flex;align-items:center;justify-content:center;border-right:var(--bw) solid var(--border);}
+.shutter-btn{width:66px;height:66px;border:3px solid var(--border);border-radius:50%;background:var(--white);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.shutter-btn::before{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid transparent;transition:all .3s;}
+.shutter-btn:hover::before{border-color:rgba(26,26,26,.22);transform:scale(1.05);}
+.shutter-inner{width:52px;height:52px;border-radius:50%;background:var(--ink);transition:transform .15s var(--es),background .15s;}
+.shutter-btn:hover .shutter-inner{background:var(--accent);transform:scale(.93);}
+.shutter-btn:active .shutter-inner{transform:scale(.8);}
+.shutter-ripple{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
+.shutter-btn:active .shutter-ripple{animation:ripple .6s ease-out forwards;}
+
+/* Rec button in capture row */
+.rec-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 18px;gap:14px;}
+.rec-main-btn{
+  width:66px;height:66px;border-radius:50%;border:3px solid var(--rec);background:var(--white);
+  cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.rec-main-btn::before{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid transparent;transition:all .3s;}
+.rec-main-btn:hover::before{border-color:rgba(232,56,13,.3);}
+.rec-main-inner{
+  width:52px;height:52px;border-radius:50%;background:var(--rec);
+  transition:border-radius .25s var(--es),transform .15s var(--es),background .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.rec-main-btn:hover .rec-main-inner{transform:scale(.93);}
+.rec-main-btn.recording .rec-main-inner{border-radius:8px;background:var(--rec);}
+.rec-main-btn.recording:hover .rec-main-inner{transform:scale(.85);}
+.rec-main-btn:active .rec-main-inner{transform:scale(.8);}
+.rec-ripple{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
+.rec-main-btn.recording .rec-ripple{animation:recRipple 1.5s infinite;}
+
+/* Rec side controls */
+.rec-side{display:flex;flex-direction:column;gap:8px;align-items:flex-start;}
+.rec-duration{font-family:'Space Mono',monospace;font-size:13px;letter-spacing:2px;color:var(--ink);min-width:70px;}
+.rec-duration.active{color:var(--rec);}
+.rec-info{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+
+/* Photo mode / Video mode toggle */
+.photo-controls{display:block;}
+.video-controls{display:none;}
+.video-mode-active .photo-controls{display:none;}
+.video-mode-active .video-controls{display:block;}
+
+/* ===== VIDEO SETTINGS PANEL ===== */
+.video-settings{border-bottom:var(--bw) solid var(--border);}
+.vs-grid{display:grid;grid-template-columns:repeat(2,1fr);}
+.vs-cell{padding:14px 16px;border-right:var(--bw) solid var(--border);border-bottom:var(--bw) solid var(--border);}
+.vs-cell:nth-child(2n){border-right:none;}
+.vs-cell:last-child,.vs-cell:nth-last-child(2){border-bottom:none;}
+.vs-label{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.vs-options{display:flex;gap:6px;flex-wrap:wrap;}
+.vs-opt{
+  height:28px;padding:0 10px;
+  font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  border:var(--bw) solid var(--border);background:none;color:var(--muted);cursor:pointer;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.vs-opt::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .18s var(--eq);}
+.vs-opt span{position:relative;z-index:1;}
+.vs-opt:hover::before{transform:translateY(0);}
+.vs-opt:hover{color:var(--white);}
+.vs-opt.sel{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.vs-opt.sel-rec{background:var(--rec);color:var(--white);border-color:var(--rec);}
+.vs-opt.sel-rec::before{background:var(--ink);}
+
+/* ===== ADJUSTMENTS ===== */
+.adj-grid{display:grid;grid-template-columns:repeat(3,1fr);}
+@media(min-width:900px){.adj-grid{grid-template-columns:repeat(2,1fr);}}
+.adj-cell{padding:12px 14px;border-right:var(--bw) solid var(--border);border-bottom:var(--bw) solid var(--border);}
+.adj-cell:nth-child(3n){border-right:none;}
+@media(min-width:900px){
+  .adj-cell:nth-child(3n){border-right:var(--bw) solid var(--border);}
+  .adj-cell:nth-child(2n){border-right:none;}
+}
+.adj-cell:nth-last-child(-n+3){border-bottom:none;}
+@media(min-width:900px){
+  .adj-cell:nth-last-child(-n+3){border-bottom:var(--bw) solid var(--border);}
+  .adj-cell:nth-last-child(-n+2){border-bottom:none;}
+}
+.adj-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:6px;}
+.adj-val{color:var(--ink);font-weight:700;transition:color .2s;}
+.adj-val.changed{color:var(--accent);}
+.adj-icon{margin-bottom:6px;}
+.adj-icon svg{width:13px;height:13px;color:var(--muted);transition:transform .3s var(--es);}
+.adj-cell:hover .adj-icon svg{transform:scale(1.25);}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--paper);border-radius:0;outline:none;cursor:pointer;transition:height .15s;}
+input[type=range]:hover{height:3px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;background:var(--ink);border-radius:0;cursor:pointer;transition:transform .15s var(--es),background .15s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.45);background:var(--accent);}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--ink);border-radius:0;border:none;cursor:pointer;}
+
+/* ===== PRESETS ===== */
+.presets-grid{display:grid;grid-template-columns:repeat(4,1fr);}
+@media(min-width:900px){.presets-grid{grid-template-columns:repeat(3,1fr);}}
+.preset-item{border-right:var(--bw) solid var(--border);border-bottom:var(--bw) solid var(--border);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;position:relative;overflow:hidden;}
+.preset-item:nth-child(4n){border-right:none;}
+@media(min-width:900px){
+  .preset-item:nth-child(4n){border-right:var(--bw) solid var(--border);}
+  .preset-item:nth-child(3n){border-right:none;}
+}
+.preset-item::after{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .25s var(--eq);z-index:0;}
+.preset-item:hover::after{transform:translateY(0);}
+.preset-item.active{background:var(--ink);}
+.preset-item.active::before{content:'✓';position:absolute;top:6px;right:8px;font-family:'Space Mono',monospace;font-size:9px;color:var(--white);z-index:2;animation:checkPop .3s var(--es);}
+.preset-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:var(--bw) solid currentColor;color:var(--muted);transition:color .2s,transform .3s var(--es);position:relative;z-index:1;}
+.preset-icon svg{width:15px;height:15px;}
+.preset-item:hover .preset-icon,.preset-item.active .preset-icon{color:var(--white);transform:scale(1.15);z-index:1;}
+.preset-name{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink);text-align:center;position:relative;z-index:1;transition:color .2s;}
+.preset-item:hover .preset-name,.preset-item.active .preset-name{color:var(--white);}
+.preset-item[data-n="NATURAL"]:hover .preset-icon svg{animation:iconSpin .7s ease;}
+.preset-item[data-n="VIVID"]:hover .preset-icon svg{animation:iconPop .5s var(--es);}
+.preset-item[data-n="WARM"]:hover .preset-icon svg{animation:iconWobble .6s ease;}
+.preset-item[data-n="COOL"]:hover .preset-icon svg{animation:iconSpin .5s ease;}
+.preset-item[data-n="FADE"]:hover .preset-icon svg{animation:iconFade .6s ease;}
+.preset-item[data-n="NOIR"]:hover .preset-icon svg{animation:iconFlip .5s ease;}
+.preset-item[data-n="CHROME"]:hover .preset-icon svg{animation:iconSpin .4s ease;}
+.preset-item[data-n="MATTE"]:hover .preset-icon svg{animation:iconPop .4s var(--es);}
+.preset-item[data-n="GOLDEN"]:hover .preset-icon svg{animation:iconShine .6s ease;}
+.preset-item[data-n="SLATE"]:hover .preset-icon svg{animation:iconWave .5s ease;}
+.preset-item[data-n="PUNCH"]:hover .preset-icon svg{animation:iconPunch .4s var(--es);}
+.preset-item[data-n="DREAMY"]:hover .preset-icon svg{animation:iconDream .8s ease;}
+
+/* ===== GALLERY ===== */
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);min-height:70px;}
+.gallery-item{position:relative;aspect-ratio:1;overflow:hidden;border-right:var(--bw) solid var(--border);border-bottom:var(--bw) solid var(--border);cursor:pointer;animation:galleryIn .4s var(--eq);}
+.gallery-item:nth-child(3n){border-right:none;}
+.gallery-item img,.gallery-item video{width:100%;height:100%;object-fit:cover;transition:transform .3s var(--eq);}
+.gallery-item:hover img,.gallery-item:hover video{transform:scale(1.07);}
+.gi-ov{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:flex-end;justify-content:flex-end;padding:6px;transition:background .2s;gap:5px;}
+.gallery-item:hover .gi-ov{background:rgba(0,0,0,.35);}
+.dl-btn{width:28px;height:28px;background:rgba(255,255,255,.92);border:var(--bw) solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:translateY(5px);transition:opacity .2s,transform .2s;}
+.gallery-item:hover .dl-btn{opacity:1;transform:translateY(0);}
+.dl-btn svg{width:12px;height:12px;}
+.dl-btn:hover{background:var(--ink);}
+.dl-btn:hover svg{stroke:#fff;}
+/* video badge */
+.vid-badge{position:absolute;top:6px;left:6px;background:var(--rec);padding:2px 6px;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1px;color:#fff;text-transform:uppercase;display:none;}
+.gallery-item.is-video .vid-badge{display:block;}
+.gallery-item.is-video .vid-dur{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.6);padding:2px 6px;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1px;color:#fff;}
+
+/* empty gallery */
+.empty-gallery{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:36px 16px;animation:emptyFloat 3s ease-in-out infinite;}
+.empty-icon{width:40px;height:40px;border:var(--bw) solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.empty-icon svg{width:16px;height:16px;color:var(--muted);}
+.empty-text{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:center;}
+
+/* ===== LIGHTBOX ===== */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;animation:lbScale .3s var(--eq);}
+.lightbox.open{display:flex;}
+.lb-media{max-width:90vw;max-height:80vh;object-fit:contain;border:var(--bw) solid rgba(255,255,255,.12);}
+.lb-video{max-width:90vw;max-height:80vh;outline:none;}
+.lb-bar{display:flex;align-items:center;gap:12px;margin-top:16px;}
+.lb-close{width:40px;height:40px;border:var(--bw) solid rgba(255,255,255,.3);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .15s,border-color .15s;}
+.lb-close:hover{background:rgba(255,255,255,.1);}
+.lb-close svg{width:16px;height:16px;}
+.lb-dl{display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;border:var(--bw) solid rgba(255,255,255,.3);background:none;color:#fff;cursor:pointer;position:relative;overflow:hidden;}
+.lb-dl::before{content:'';position:absolute;inset:0;background:var(--white);transform:translateY(101%);transition:transform .2s var(--eq);}
+.lb-dl:hover::before{transform:translateY(0);}
+.lb-dl:hover{color:var(--ink);}
+.lb-dl > *{position:relative;z-index:1;}
+.lb-info{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--white);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:10px 20px;z-index:5000;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursorRing"></div>
+
+<!-- ===== TOPBAR ===== -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon"></div>
+    FRAME
+  </div>
+  <!-- Centre: mode pill -->
+  <div class="nav-mode">
+    <div class="mode-pill">
+      <button class="mode-pill-btn active" id="modePillPhoto" onclick="setMode('photo')">
+        <div class="live-dot"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M20 7h-3.2L15 5H9L7.2 7H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/></svg>
+        Photo
+      </button>
+      <button class="mode-pill-btn vid" id="modePillVideo" onclick="setMode('video')">
+        <div class="rec-dot" id="topRecDot"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Video
+      </button>
+    </div>
+  </div>
+
+  <!-- Right: icon tools -->
+  <div class="nav-tools">
+    <button class="nav-tool" id="tabGrid" onclick="toggleGrid()" title="Grid overlay">
+      <svg class="ni-grid" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span class="nav-tool-label">Grid</span>
+    </button>
+    <button class="nav-tool" id="tabFlip" onclick="flipCamera()" title="Flip camera">
+      <svg class="ni-flip" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      <span class="nav-tool-label">Flip</span>
+    </button>
+    <button class="nav-tool" id="tabTimer" onclick="cycleTimer()" title="Self-timer">
+      <div class="timer-badge" id="timerBadge"></div>
+      <svg class="ni-timer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 15.5"/><path d="m9.29 3.29-.59-.59"/><path d="m15.3 3.29.59-.59"/><path d="M9 3h6"/></svg>
+      <span class="nav-tool-label" id="timerLabel">Timer</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="layout">
+
+  <!-- LEFT COLUMN -->
+  <div class="main-col">
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle reveal r1">
+      <button class="mode-btn active" id="modePhoto" onclick="setMode('photo')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M20 7h-3.2L15 5H9L7.2 7H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/></svg>
+        Photo
+      </button>
+      <button class="mode-btn video-mode" id="modeVideo" onclick="setMode('video')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Video
+      </button>
+    </div>
+
+    <!-- VIEWFINDER -->
+    <div class="card reveal r2">
+      <div class="vf-wrap" id="vfWrap">
+        <video id="cameraFeed" autoplay muted playsinline></video>
+        <canvas id="filterCanvas"></canvas>
+        <div class="grid-ov" id="gridOv"></div>
+        <div class="focus-ring" id="focusRing"></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="crosshair"></div>
+        <!-- Info HUD -->
+        <div class="vf-info" id="vfInfo">
+          <div class="info-chip" id="chipISO">ISO 100</div>
+          <div class="info-chip" id="chipFPS" style="display:none">60 FPS</div>
+        </div>
+        <!-- REC overlay -->
+        <div class="rec-overlay" id="recOverlay">
+          <div class="rec-badge">
+            <div class="rec-badge-dot"></div>
+            <div class="rec-badge-label">REC</div>
+          </div>
+          <div class="rec-timer" id="recTimerOv">00:00:00</div>
+          <div class="rec-quality-chip" id="recQualityChip">4K · 60FPS</div>
+        </div>
+        <!-- Offline state -->
+        <div class="cam-offline" id="camOffline">
+          <div class="offline-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M20 7h-3.2L15 5H9L7.2 7H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/></svg>
+          </div>
+          <div class="offline-label">Camera<br>Offline</div>
+          <button class="btn-enable" onclick="enableCamera()"><span>Enable Camera</span></button>
+          <div class="err-badge" id="errBadge">Camera access denied<br>Check browser permissions</div>
+        </div>
+        <!-- Timer overlay -->
+        <div class="timer-ov" id="timerOv"><div class="timer-num" id="timerNum">3</div></div>
+        <div class="flash" id="flashEl"></div>
+      </div>
+    </div>
+
+    <!-- ZOOM ROW -->
+    <div class="zoom-row reveal r2" id="zoomRow">
+      <button class="zoom-btn" onclick="setZoom(.5)"><span>.5×</span></button>
+      <button class="zoom-btn az" onclick="setZoom(1)"><span>1×</span></button>
+      <button class="zoom-btn" onclick="setZoom(2)"><span>2×</span></button>
+      <button class="zoom-btn" onclick="setZoom(3)"><span>3×</span></button>
+    </div>
+
+    <!-- CAPTURE ROW -->
+    <div class="capture-row reveal r3" id="captureRow">
+      <!-- Photo controls -->
+      <div class="photo-controls" style="display:flex;flex:1;" id="photoControls">
+        <div class="shutter-wrap" style="flex:1;">
+          <button class="shutter-btn" onclick="capturePhoto()" title="Capture">
+            <div class="shutter-inner"></div>
+            <div class="shutter-ripple"></div>
+          </button>
+        </div>
+      </div>
+      <!-- Video controls -->
+      <div class="video-controls" id="videoControls" style="display:none;flex:1;">
+        <div class="rec-wrap">
+          <div class="rec-side">
+            <div class="rec-duration" id="recDuration">00:00:00</div>
+            <div class="rec-info" id="recInfoText">Ready to record</div>
+          </div>
+          <button class="rec-main-btn" id="recMainBtn" onclick="toggleRecord()">
+            <div class="rec-main-inner" id="recMainInner"></div>
+            <div class="rec-ripple"></div>
+          </button>
+          <div class="rec-side">
+            <div class="rec-info" id="recQualityInfo">4K · 60FPS</div>
+            <div class="rec-info" id="recSizeInfo">MP4 · H.264</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO SETTINGS (only visible in video mode) -->
+    <div class="card video-controls reveal r3" id="videoSettingsPanel" style="display:none;">
+      <div class="card-header">
+        <span class="card-title">Video Settings</span>
+        <span class="badge ab"><span class="bl">4K</span></span>
+      </div>
+      <div class="video-settings">
+        <div class="vs-grid">
+          <div class="vs-cell">
+            <div class="vs-label">Resolution</div>
+            <div class="vs-options" id="vsRes">
+              <button class="vs-opt sel-rec" data-val="4k" onclick="setVideoOpt('res',this)"><span>4K</span></button>
+              <button class="vs-opt" data-val="1080" onclick="setVideoOpt('res',this)"><span>1080P</span></button>
+              <button class="vs-opt" data-val="720" onclick="setVideoOpt('res',this)"><span>720P</span></button>
+            </div>
+          </div>
+          <div class="vs-cell">
+            <div class="vs-label">Frame Rate</div>
+            <div class="vs-options" id="vsFps">
+              <button class="vs-opt sel-rec" data-val="60" onclick="setVideoOpt('fps',this)"><span>60</span></button>
+              <button class="vs-opt" data-val="30" onclick="setVideoOpt('fps',this)"><span>30</span></button>
+              <button class="vs-opt" data-val="24" onclick="setVideoOpt('fps',this)"><span>24</span></button>
+            </div>
+          </div>
+          <div class="vs-cell">
+            <div class="vs-label">Format</div>
+            <div class="vs-options" id="vsFmt">
+              <button class="vs-opt sel-rec" data-val="mp4" onclick="setVideoOpt('fmt',this)"><span>MP4</span></button>
+              <button class="vs-opt" data-val="webm" onclick="setVideoOpt('fmt',this)"><span>WEBM</span></button>
+            </div>
+          </div>
+          <div class="vs-cell">
+            <div class="vs-label">Bitrate</div>
+            <div class="vs-options" id="vsBr">
+              <button class="vs-opt sel-rec" data-val="high" onclick="setVideoOpt('br',this)"><span>HIGH</span></button>
+              <button class="vs-opt" data-val="med" onclick="setVideoOpt('br',this)"><span>MED</span></button>
+              <button class="vs-opt" data-val="low" onclick="setVideoOpt('br',this)"><span>LOW</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar reveal r4" id="actionBar">
+      <button class="abt" onclick="saveAll()">
+        <svg class="ab-save" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span class="abt-label">Save All</span>
+      </button>
+      <button class="abt" onclick="clearGallery()">
+        <svg class="ab-clear" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <span class="abt-label">Clear</span>
+      </button>
+      <button class="abt" onclick="resetAdj()">
+        <svg class="ab-reset" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <span class="abt-label">Reset</span>
+      </button>
+      <button class="abt" onclick="downloadAll()">
+        <svg class="ab-all" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="abt-label">Download</span>
+      </button>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- PRESETS -->
+    <div class="card reveal r1">
+      <div class="card-header">
+        <span class="card-title">Film Presets</span>
+        <button class="badge ab" onclick="applyPreset(null)"><span class="bl">Reset</span></button>
+      </div>
+      <div class="presets-grid" id="presetsGrid">
+        <!-- Presets injected by JS -->
+      </div>
+    </div>
+
+    <!-- ADJUSTMENTS -->
+    <div class="card reveal r2">
+      <div class="card-header">
+        <span class="card-title">Adjustments</span>
+        <button class="badge" onclick="resetAdj()"><span class="bl">Reset</span></button>
+      </div>
+      <div class="adj-grid" id="adjGrid">
+        <!-- Sliders injected by JS -->
+      </div>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="card reveal r3">
+      <div class="card-header">
+        <span class="card-title">Gallery</span>
+        <span class="badge" id="galleryCount"><span class="bl" id="countTxt">0 items</span></span>
+      </div>
+      <div class="gallery-grid" id="galleryGrid">
+        <div class="empty-gallery">
+          <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+          <div class="empty-text">No captures yet<br>Photo & video saved here</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /layout -->
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <img class="lb-media" id="lbImg" src="" alt="" style="display:none">
+  <video class="lb-video" id="lbVideo" controls style="display:none"></video>
+  <div class="lb-bar">
+    <button class="lb-close" onclick="closeLightboxBtn()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <button class="lb-dl" id="lbDlBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download
+    </button>
+    <span class="lb-info" id="lbInfo"></span>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CURSOR
+// ============================================================
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px';
+  ring.style.left = e.clientX+'px'; ring.style.top = e.clientY+'px';
+});
+
+// ============================================================
+// STATE
+// ============================================================
+let stream = null, facingMode = 'user', currentZoom = 1;
+let gridOn = false, timerVal = 0, timerCycle = [0,3,5,10];
+let timerIdx = 0, isShot = false;
+let adjValues = {};
+let activePreset = null;
+let gallery = []; // {type:'photo'|'video', url, name, size, duration?}
+
+// Video recording state
+let mediaRecorder = null, recChunks = [];
+let isRecording = false, recStartTime = null, recInterval = null;
+let videoSettings = {res:'4k', fps:'60', fmt:'mp4', br:'high'};
+
+// Canvas/filter
+let filterActive = false;
+let animFrame = null;
+
+// ============================================================
+// MODE
+// ============================================================
+let currentMode = 'photo'; // 'photo' | 'video'
+function setMode(mode) {
+  currentMode = mode;
+  // top pill
+  document.getElementById('modePillPhoto').classList.toggle('active', mode==='photo');
+  document.getElementById('modePillVideo').classList.toggle('active', mode==='video');
+  // mode btns below viewfinder
+  document.getElementById('modePhoto').classList.toggle('active', mode==='photo');
+  document.getElementById('modeVideo').classList.toggle('active', mode==='video');
+  // controls
+  document.getElementById('photoControls').style.display = mode==='photo'?'flex':'none';
+  document.getElementById('videoControls').style.display = mode==='video'?'flex':'none';
+  document.getElementById('videoSettingsPanel').style.display = mode==='video'?'block':'none';
+  // fps chip in HUD
+  document.getElementById('chipFPS').style.display = mode==='video'?'':'none';
+  // cursor color
+  cur.classList.toggle('rec-mode', mode==='video');
+  ring.classList.toggle('rec-mode', mode==='video');
+  updateRecQualityLabel();
+}
+
+// ============================================================
+// CAMERA
+// ============================================================
+async function enableCamera() {
+  try {
+    const constraints = buildConstraints();
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    applyStream(stream);
+  } catch(e) {
+    document.getElementById('errBadge').classList.add('show');
+  }
+}
+
+function buildConstraints() {
+  const res = {
+    '4k':  {width:{ideal:3840},height:{ideal:2160}},
+    '1080':{width:{ideal:1920},height:{ideal:1080}},
+    '720': {width:{ideal:1280},height:{ideal:720}},
+  }[videoSettings.res] || {width:{ideal:3840},height:{ideal:2160}};
+  const fps = parseInt(videoSettings.fps) || 60;
+  return {
+    video:{...res, frameRate:{ideal:fps,max:fps}, facingMode},
+    audio: currentMode==='video'
+  };
+}
+
+function applyStream(s) {
+  stream = s;
+  const feed = document.getElementById('cameraFeed');
+  feed.srcObject = stream;
+  feed.style.display = 'block';
+  document.getElementById('camOffline').style.display = 'none';
+  document.getElementById('vfInfo').style.display = 'flex';
+  document.getElementById('zoomRow').classList.add('vis');
+  startFilterLoop();
+}
+
+function startFilterLoop() {
+  const feed = document.getElementById('cameraFeed');
+  const canvas = document.getElementById('filterCanvas');
+  const ctx = canvas.getContext('2d');
+  const loop = () => {
+    if(!stream) return;
+    canvas.width = feed.videoWidth||640;
+    canvas.height = feed.videoHeight||480;
+    ctx.drawImage(feed,0,0,canvas.width,canvas.height);
+    applyFilter(ctx, canvas.width, canvas.height);
+    animFrame = requestAnimationFrame(loop);
+  };
+  if(animFrame) cancelAnimationFrame(animFrame);
+  // Only show canvas when filter active
+  feed.onloadeddata = () => { if(filterActive) canvas.style.display='block'; };
+  loop();
+}
+
+async function flipCamera() {
+  facingMode = facingMode==='user'?'environment':'user';
+  if(!stream) return;
+  stream.getTracks().forEach(t=>t.stop());
+  try {
+    const s = await navigator.mediaDevices.getUserMedia(buildConstraints());
+    applyStream(s);
+  } catch(e) {}
+}
+
+async function setZoom(z) {
+  currentZoom = z;
+  document.querySelectorAll('.zoom-btn').forEach(b=>b.classList.remove('az'));
+  [...document.querySelectorAll('.zoom-btn')].find(b=>b.textContent.trim()===z+'×')?.classList.add('az');
+  // Apply via track constraints if supported
+  if(!stream) return;
+  const vt = stream.getVideoTracks()[0];
+  if(!vt) return;
+  try {
+    const caps = vt.getCapabilities();
+    if(caps.zoom) await vt.applyConstraints({advanced:[{zoom:Math.min(z,caps.zoom.max)}]});
+  } catch(e) {}
+}
+
+function toggleGrid() {
+  gridOn = !gridOn;
+  document.getElementById('gridOv').classList.toggle('show', gridOn);
+  document.getElementById('tabGrid').classList.toggle('active', gridOn);
+}
+
+// ============================================================
+// PHOTO CAPTURE
+// ============================================================
+function capturePhoto() {
+  if(!stream) { showToast('Enable camera first'); return; }
+  if(timerVal > 0) { runTimer(timerVal, doCapture); return; }
+  doCapture();
+}
+
+function doCapture() {
+  doFlash();
+  const feed = document.getElementById('cameraFeed');
+  const canvas = document.createElement('canvas');
+  canvas.width = feed.videoWidth||1280;
+  canvas.height = feed.videoHeight||720;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(feed,0,0,canvas.width,canvas.height);
+  applyFilter(ctx, canvas.width, canvas.height);
+  const url = canvas.toDataURL('image/jpeg',0.96);
+  const name = `FRAME_${timestamp()}.jpg`;
+  gallery.push({type:'photo', url, name, size: humanSize(url.length*.75)});
+  renderGallery();
+  showToast('Photo captured');
+}
+
+// ============================================================
+// VIDEO RECORDING
+// ============================================================
+function toggleRecord() {
+  if(!stream) { showToast('Enable camera first'); return; }
+  if(isRecording) stopRecording(); else startRecording();
+}
+
+async function startRecording() {
+  // Request audio if not in stream
+  let recStream = stream;
+  try {
+    if(!stream.getAudioTracks().length) {
+      const newStream = await navigator.mediaDevices.getUserMedia(buildConstraints());
+      recStream = newStream;
+      stream.getTracks().forEach(t=>t.stop());
+      applyStream(newStream);
+      recStream = newStream;
+    }
+  } catch(e) {}
+
+  recChunks = [];
+  const mimeType = getSupportedMime();
+  try {
+    const bitsPerSecond = {high:40000000, med:16000000, low:8000000}[videoSettings.br] || 40000000;
+    mediaRecorder = new MediaRecorder(recStream, {mimeType, videoBitsPerSecond: bitsPerSecond});
+  } catch(e) {
+    mediaRecorder = new MediaRecorder(recStream);
+  }
+  mediaRecorder.ondataavailable = e => { if(e.data.size>0) recChunks.push(e.data); };
+  mediaRecorder.onstop = onRecordingStop;
+  mediaRecorder.start(100);
+
+  isRecording = true;
+  recStartTime = Date.now();
+
+  // UI
+  document.getElementById('recMainBtn').classList.add('recording');
+  document.getElementById('recOverlay').classList.add('show');
+  document.getElementById('topRecDot').classList.add('show');
+  document.getElementById('recInfoText').textContent = 'Recording...';
+  cur.classList.add('rec-mode'); ring.classList.add('rec-mode');
+  updateRecQualityLabel();
+
+  recInterval = setInterval(updateRecTimer, 500);
+}
+
+function stopRecording() {
+  if(!mediaRecorder || !isRecording) return;
+  mediaRecorder.stop();
+  isRecording = false;
+  clearInterval(recInterval);
+
+  // UI
+  document.getElementById('recMainBtn').classList.remove('recording');
+  document.getElementById('recOverlay').classList.remove('show');
+  document.getElementById('topRecDot').classList.remove('show');
+  document.getElementById('recInfoText').textContent = 'Processing...';
+  if(currentMode==='video'){cur.classList.add('rec-mode');ring.classList.add('rec-mode');}
+  else{cur.classList.remove('rec-mode');ring.classList.remove('rec-mode');}
+}
+
+function onRecordingStop() {
+  const mimeType = getSupportedMime();
+  const ext = mimeType.includes('mp4')?'mp4':'webm';
+  const blob = new Blob(recChunks, {type:mimeType});
+  const url = URL.createObjectURL(blob);
+  const dur = formatDuration(Math.round((Date.now()-recStartTime)/1000));
+  const name = `FRAME_VID_${timestamp()}.${ext}`;
+  gallery.push({type:'video', url, name, size:humanSize(blob.size), duration:dur, blob});
+  renderGallery();
+  document.getElementById('recInfoText').textContent = 'Ready to record';
+  document.getElementById('recDuration').textContent = '00:00:00';
+  document.getElementById('recDuration').classList.remove('active');
+  document.getElementById('recTimerOv').textContent = '00:00:00';
+  showToast('Video saved — '+dur);
+}
+
+function getSupportedMime() {
+  const types = [
+    'video/mp4;codecs=h264','video/mp4','video/webm;codecs=vp9',
+    'video/webm;codecs=vp8','video/webm'
+  ];
+  for(const t of types) if(MediaRecorder.isTypeSupported(t)) return t;
+  return '';
+}
+
+function updateRecTimer() {
+  if(!recStartTime) return;
+  const elapsed = Math.floor((Date.now()-recStartTime)/1000);
+  const s = formatDuration(elapsed);
+  document.getElementById('recDuration').textContent = s;
+  document.getElementById('recDuration').classList.add('active');
+  document.getElementById('recTimerOv').textContent = s;
+}
+
+function formatDuration(sec) {
+  const h = String(Math.floor(sec/3600)).padStart(2,'0');
+  const m = String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+
+// ============================================================
+// VIDEO SETTINGS
+// ============================================================
+function setVideoOpt(key, btn) {
+  const parent = btn.closest('[id]');
+  parent.querySelectorAll('.vs-opt').forEach(b=>{b.classList.remove('sel','sel-rec');});
+  btn.classList.add('sel-rec');
+  videoSettings[key] = btn.dataset.val;
+  updateRecQualityLabel();
+}
+
+function updateRecQualityLabel() {
+  const res = videoSettings.res==='4k'?'4K':videoSettings.res==='1080'?'1080P':'720P';
+  const fps = videoSettings.fps+'FPS';
+  const label = res+' · '+fps;
+  document.getElementById('recQualityInfo').textContent = label;
+  document.getElementById('recQualityChip').textContent = label;
+  document.getElementById('recSizeInfo').textContent = videoSettings.fmt.toUpperCase()+' · H.264';
+  document.querySelectorAll('.badge.ab .bl').forEach(el=>el.textContent=res);
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function cycleTimer() {
+  timerIdx = (timerIdx+1)%timerCycle.length;
+  timerVal = timerCycle[timerIdx];
+  document.getElementById('timerLabel').textContent = timerVal===0?'Timer':timerVal+'s';
+  document.getElementById('tabTimer').classList.toggle('active', timerVal>0);
+  const badge = document.getElementById('timerBadge');
+  if(badge){
+    badge.textContent = timerVal===0?'':timerVal+'s';
+    badge.classList.toggle('show', timerVal>0);
+  }
+}
+
+function runTimer(sec, cb) {
+  let cnt = sec;
+  const ov = document.getElementById('timerOv');
+  const num = document.getElementById('timerNum');
+  ov.classList.add('show');
+  const tick = () => {
+    num.textContent = cnt;
+    num.style.animation='none';
+    void num.offsetWidth;
+    num.style.animation='timerPop 1s ease-in-out';
+    if(cnt===0){ov.classList.remove('show'); cb(); return;}
+    cnt--;
+    setTimeout(tick,1000);
+  };
+  tick();
+}
+
+// ============================================================
+// FLASH
+// ============================================================
+function doFlash() {
+  const f = document.getElementById('flashEl');
+  f.classList.remove('go');
+  void f.offsetWidth;
+  f.classList.add('go');
+}
+
+// ============================================================
+// FILTER / PRESETS
+// ============================================================
+const PRESETS = [
+  {n:'NATURAL',icon:'sun',filter:null},
+  {n:'VIVID',icon:'zap',filter:{saturate:1.6,contrast:1.1}},
+  {n:'WARM',icon:'thermometer',filter:{sepia:0.3,saturate:1.3,brightness:1.05}},
+  {n:'COOL',icon:'wind',filter:{hueRotate:200,saturate:1.1}},
+  {n:'FADE',icon:'cloud',filter:{brightness:1.15,saturate:0.7,contrast:0.85}},
+  {n:'NOIR',icon:'moon',filter:{grayscale:1,contrast:1.2}},
+  {n:'CHROME',icon:'aperture',filter:{saturate:1.3,contrast:1.3,brightness:1.1}},
+  {n:'MATTE',icon:'layers',filter:{brightness:1.08,saturate:0.8,contrast:0.9}},
+  {n:'GOLDEN',icon:'star',filter:{sepia:0.45,saturate:1.4,brightness:1.08}},
+  {n:'SLATE',icon:'droplets',filter:{hueRotate:220,saturate:0.8,brightness:0.95}},
+  {n:'PUNCH',icon:'zap',filter:{saturate:2,contrast:1.25}},
+  {n:'DREAMY',icon:'sparkles',filter:{brightness:1.2,saturate:0.6,blur:1.2}},
+];
+
+const ICONS = {
+  sun:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+  zap:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  thermometer:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>`,
+  wind:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>`,
+  cloud:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>`,
+  moon:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  aperture:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>`,
+  layers:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+  star:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  droplets:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>`,
+  sparkles:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
+};
+
+function renderPresets() {
+  const grid = document.getElementById('presetsGrid');
+  grid.innerHTML = PRESETS.map(p=>`
+    <div class="preset-item" data-n="${p.n}" onclick="applyPreset('${p.n}')">
+      <div class="preset-icon">${ICONS[p.icon]||ICONS.sun}</div>
+      <div class="preset-name">${p.n}</div>
+    </div>`).join('');
+}
+
+function applyPreset(name) {
+  activePreset = name;
+  document.querySelectorAll('.preset-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.n===name);
+  });
+}
+
+function buildFilterStr(f) {
+  if(!f) return 'none';
+  let s='';
+  if(f.grayscale) s+=`grayscale(${f.grayscale}) `;
+  if(f.sepia) s+=`sepia(${f.sepia}) `;
+  if(f.saturate) s+=`saturate(${f.saturate}) `;
+  if(f.contrast) s+=`contrast(${f.contrast}) `;
+  if(f.brightness) s+=`brightness(${f.brightness}) `;
+  if(f.hueRotate) s+=`hue-rotate(${f.hueRotate}deg) `;
+  if(f.blur) s+=`blur(${f.blur}px) `;
+  return s.trim()||'none';
+}
+
+function applyFilter(ctx, w, h) {
+  if(!activePreset) return;
+  const preset = PRESETS.find(p=>p.n===activePreset);
+  if(!preset||!preset.filter) return;
+  const data = ctx.getImageData(0,0,w,h);
+  const d = data.data;
+  const f = preset.filter;
+  for(let i=0;i<d.length;i+=4) {
+    let r=d[i],g=d[i+1],b=d[i+2];
+    if(f.grayscale){const gray=0.299*r+0.587*g+0.114*b;r=g=b=gray;}
+    if(f.sepia){const sr=r*.393+g*.769+b*.189,sg=r*.349+g*.686+b*.168,sb=r*.272+g*.534+b*.131;r=Math.min(255,sr*(1-f.sepia)+r*f.sepia);g=Math.min(255,sg*(1-f.sepia)+g*f.sepia);b=Math.min(255,sb*(1-f.sepia)+b*f.sepia);}
+    if(f.brightness){r*=f.brightness;g*=f.brightness;b*=f.brightness;}
+    if(f.contrast){const c=f.contrast;r=(r-128)*c+128;g=(g-128)*c+128;b=(b-128)*c+128;}
+    if(f.saturate){const gray=0.299*r+0.587*g+0.114*b;r=gray+(r-gray)*f.saturate;g=gray+(g-gray)*f.saturate;b=gray+(b-gray)*f.saturate;}
+    d[i]=Math.max(0,Math.min(255,r));
+    d[i+1]=Math.max(0,Math.min(255,g));
+    d[i+2]=Math.max(0,Math.min(255,b));
+  }
+  // Apply slider adjustments on top
+  applySliderFilter(data, w, h);
+  ctx.putImageData(data,0,0);
+}
+
+// ============================================================
+// ADJUSTMENTS
+// ============================================================
+const ADJ = [
+  {k:'exposure',label:'Exposure',min:-100,max:100,def:0},
+  {k:'contrast',label:'Contrast',min:-100,max:100,def:0},
+  {k:'highlights',label:'Highlights',min:-100,max:100,def:0},
+  {k:'shadows',label:'Shadows',min:-100,max:100,def:0},
+  {k:'saturation',label:'Saturation',min:-100,max:100,def:0},
+  {k:'sharpness',label:'Sharpness',min:0,max:100,def:0},
+];
+
+function renderAdjGrid() {
+  ADJ.forEach(a=>adjValues[a.k]=a.def);
+  const grid = document.getElementById('adjGrid');
+  grid.innerHTML = ADJ.map(a=>`
+    <div class="adj-cell">
+      <div class="adj-label">
+        ${a.label}
+        <span class="adj-val" id="adjVal_${a.k}">${a.def}</span>
+      </div>
+      <input type="range" min="${a.min}" max="${a.max}" value="${a.def}"
+        oninput="onAdj('${a.k}',this.value)">
+    </div>`).join('');
+}
+
+function onAdj(k, v) {
+  adjValues[k] = parseFloat(v);
+  const el = document.getElementById('adjVal_'+k);
+  el.textContent = v;
+  el.classList.toggle('changed', parseFloat(v)!==ADJ.find(a=>a.k===k).def);
+}
+
+function applySliderFilter(data, w, h) {
+  const d = data.data;
+  const exp = adjValues['exposure']||0;
+  const con = adjValues['contrast']||0;
+  const sat = adjValues['saturation']||0;
+  const bright = 1 + exp/200;
+  const conF = 1 + con/150;
+  const satF = 1 + sat/150;
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    r*=bright; g*=bright; b*=bright;
+    r=(r-128)*conF+128; g=(g-128)*conF+128; b=(b-128)*conF+128;
+    const gray=0.299*r+0.587*g+0.114*b;
+    r=gray+(r-gray)*satF; g=gray+(g-gray)*satF; b=gray+(b-gray)*satF;
+    d[i]=clamp(r); d[i+1]=clamp(g); d[i+2]=clamp(b);
+  }
+}
+function clamp(v){return Math.max(0,Math.min(255,v));}
+
+function resetAdj() {
+  ADJ.forEach(a=>{
+    adjValues[a.k]=a.def;
+    const inp = document.querySelector(`input[oninput*="${a.k}"]`);
+    if(inp) inp.value = a.def;
+    const el = document.getElementById('adjVal_'+a.k);
+    if(el){el.textContent=a.def;el.classList.remove('changed');}
+  });
+}
+
+// ============================================================
+// GALLERY
+// ============================================================
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  document.getElementById('countTxt').textContent = gallery.length+' item'+(gallery.length!==1?'s':'');
+  if(!gallery.length){
+    grid.innerHTML=`<div class="empty-gallery"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><div class="empty-text">No captures yet<br>Photo & video saved here</div></div>`;
+    return;
+  }
+  grid.innerHTML = gallery.map((item,i)=>{
+    if(item.type==='photo') return `
+      <div class="gallery-item" onclick="openLightbox(${i})">
+        <img src="${item.url}" loading="lazy">
+        <div class="gi-ov">
+          <div class="dl-btn" onclick="event.stopPropagation();downloadItem(${i})">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+      </div>`;
+    else return `
+      <div class="gallery-item is-video" onclick="openLightbox(${i})">
+        <video src="${item.url}" muted preload="metadata" style="pointer-events:none;"></video>
+        <div class="vid-badge">VID</div>
+        ${item.duration?`<div class="vid-dur">${item.duration}</div>`:''}
+        <div class="gi-ov">
+          <div class="dl-btn" onclick="event.stopPropagation();downloadItem(${i})">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ============================================================
+// LIGHTBOX
+// ============================================================
+let lbCurrent = null;
+function openLightbox(i) {
+  const item = gallery[i];
+  if(!item) return;
+  lbCurrent = i;
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lbImg');
+  const vid = document.getElementById('lbVideo');
+  lb.classList.add('open');
+  if(item.type==='photo') {
+    img.src=item.url; img.style.display='block';
+    vid.style.display='none'; vid.src='';
+    document.getElementById('lbInfo').textContent = item.name+' · '+item.size;
+  } else {
+    vid.src=item.url; vid.style.display='block'; vid.load();
+    img.style.display='none'; img.src='';
+    document.getElementById('lbInfo').textContent = item.name+' · '+item.duration+' · '+item.size;
+  }
+}
+function closeLightbox(e) {
+  if(e.target===document.getElementById('lightbox')) closeLightboxBtn();
+}
+function closeLightboxBtn() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lbVideo').pause();
+  document.getElementById('lbVideo').src='';
+}
+document.getElementById('lbDlBtn').onclick = () => { if(lbCurrent!==null) downloadItem(lbCurrent); };
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
+function downloadItem(i) {
+  const item = gallery[i];
+  const a = document.createElement('a');
+  a.href = item.url; a.download = item.name; a.click();
+  showToast('Downloading '+item.name);
+}
+function saveAll() {
+  if(!gallery.length){showToast('Nothing to save');return;}
+  gallery.forEach((item,i)=>setTimeout(()=>downloadItem(i),i*300));
+}
+function downloadAll() { saveAll(); }
+function clearGallery() {
+  if(!gallery.length){showToast('Gallery already empty');return;}
+  gallery=[]; renderGallery(); showToast('Gallery cleared');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function timestamp() {
+  const d=new Date();
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+function pad(n){return String(n).padStart(2,'0');}
+function humanSize(bytes) {
+  if(bytes<1024) return bytes+'B';
+  if(bytes<1048576) return (bytes/1024).toFixed(1)+'KB';
+  return (bytes/1048576).toFixed(1)+'MB';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// Focus on tap
+document.getElementById('vfWrap').addEventListener('click', e => {
+  if(!stream) return;
+  const ring = document.getElementById('focusRing');
+  const rect = e.currentTarget.getBoundingClientRect();
+  ring.style.left = (e.clientX-rect.left)+'px';
+  ring.style.top = (e.clientY-rect.top)+'px';
+  ring.classList.remove('go');
+  void ring.offsetWidth;
+  ring.classList.add('go');
+});
+
+// ============================================================
+// INIT
+// ============================================================
+renderPresets();
+renderAdjGrid();
+renderGallery();
+updateRecQualityLabel();
+
+// Auto-enable on load
+enableCamera();
+</script>
+</body>
+</html>
