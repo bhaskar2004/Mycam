@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FRAME — Camera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #FFFFFF;
+    --off: #F5F3EF;
+    --paper: #EAE7E1;
+    --border: #1A1A1A;
+    --ink: #1A1A1A;
+    --muted: #888;
+    --accent: #E8380D;
+    --accent2: #1A1A1A;
+    --radius: 0px;
+    --bw: 1.5px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--off);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    overscroll-behavior: none;
+  }
+
+  /* TOP NAV */
+  .topbar {
+    display: flex;
+    align-items: center;
+    background: var(--white);
+    border-bottom: var(--bw) solid var(--border);
+    padding: 0;
+    height: 52px;
+    user-select: none;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    border-right: var(--bw) solid var(--border);
+    height: 100%;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+
+  .brand-icon {
+    width: 28px; height: 28px;
+    border: var(--bw) solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .brand-icon::after {
+    content:''; width:10px;height:10px;border:var(--bw) solid var(--border);border-radius:50%;
+  }
+
+  .nav-tabs {
+    display: flex;
+    height: 100%;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display:none; }
+
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 18px;
+    border-right: var(--bw) solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+    text-transform: uppercase;
+  }
+  .nav-tab:hover { background: var(--paper); }
+  .nav-tab.active { background: var(--ink); color: var(--white); }
+  .nav-tab svg { width:14px; height:14px; }
+
+  /* LIVE dot */
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
+
+  /* MAIN LAYOUT */
+  .app {
+    display: flex;
+    flex-direction: column;
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 16px 12px;
+    gap: 12px;
+    padding-bottom: 100px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--white);
+    border: var(--bw) solid var(--border);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border: var(--bw) solid var(--border);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.12s;
+  }
+  .badge:hover { background: var(--ink); color: var(--white); }
+  .badge.active-badge { background: var(--ink); color: var(--white); }
+
+  /* VIEWFINDER */
+  .viewfinder-wrap {
+    position: relative;
+    background: #0a0a0a;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #cameraFeed {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  .vf-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Grid lines */
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .grid-lines.show { opacity: 1; }
+  .grid-lines::before, .grid-lines::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,255,255,0.25);
+  }
+  .grid-lines::before {
+    left: 33.33%; top:0; bottom:0; width:1px;
+    box-shadow: 33.33% 0 0 rgba(255,255,255,0.25);
+  }
+  .grid-lines::after {
+    top: 33.33%; left:0; right:0; height:1px;
+    box-shadow: 0 33.33% 0 rgba(255,255,255,0.25);
+  }
+  .vline2 {
+    position:absolute;
+    right:33.33%;top:0;bottom:0;width:1px;
+    background: rgba(255,255,255,0.25);
+  }
+  .hline2 {
+    position:absolute;
+    bottom:33.33%;left:0;right:0;height:1px;
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* Crosshair */
+  .crosshair {
+    position: absolute;
+    width: 44px; height: 44px;
+    border: 1.5px solid rgba(255,255,255,0.8);
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+  }
+  .crosshair::before, .crosshair::after {
+    content:'';
+    position:absolute;
+    background: rgba(255,255,255,0.8);
+  }
+  .crosshair::before { top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:1px; }
+  .crosshair::after  { top:50%;left:50%;transform:translate(-50%,-50%);width:1px;height:6px; }
+
+  /* Corner brackets */
+  .corner { position:absolute; width:16px;height:16px;border-color:rgba(255,255,255,0.7);border-style:solid; }
+  .corner.tl { top:10px;left:10px;border-width:1.5px 0 0 1.5px; }
+  .corner.tr { top:10px;right:10px;border-width:1.5px 1.5px 0 0; }
+  .corner.bl { bottom:10px;left:10px;border-width:0 0 1.5px 1.5px; }
+  .corner.br { bottom:10px;right:10px;border-width:0 1.5px 1.5px 0; }
+
+  /* Offline state */
+  .cam-offline {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: #0a0a0a;
+  }
+
+  .offline-icon {
+    width: 48px;height:48px;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,0.4);
+  }
+
+  .offline-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.4);
+    text-align:center;
+    line-height:1.8;
+  }
+
+  .btn-enable {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--white);
+    color: var(--ink);
+    border: none;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn-enable:hover { background: var(--accent); color: #fff; }
+
+  .err-msg {
+    display:none;
+    font-family:'Space Mono',monospace;
+    font-size:9px;
+    letter-spacing:1px;
+    color: var(--accent);
+    text-align:center;
+    padding: 0 20px;
+    line-height:1.7;
+  }
+  .err-msg.show { display:block; }
+
+  /* CANVAS (for filter rendering) */
+  #filterCanvas {
+    position:absolute;
+    inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    display:none;
+  }
+
+  /* Capture flash */
+  .flash {
+    position:absolute;inset:0;
+    background:white;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0s;
+  }
+  .flash.trigger { opacity:1;transition:opacity 0.4s ease-out; }
+
+  /* Shutter info bar */
+  .vf-info {
+    position:absolute;
+    top:10px;right:10px;
+    display:flex;gap:6px;
+    flex-direction:column;
+    align-items:flex-end;
+  }
+  .info-chip {
+    font-family:'Space Mono',monospace;
+    font-size:9px;
+    letter-spacing:1px;
+    color:#fff;
+    background:rgba(0,0,0,0.4);
+    padding:3px 7px;
+    backdrop-filter:blur(4px);
+  }
+
+  /* ACTION BAR */
+  .action-bar {
+    display:flex;
+    border: var(--bw) solid var(--border);
+    background:var(--white);
+  }
+
+  .action-btn {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding: 12px 4px;
+    border-right: var(--bw) solid var(--border);
+    cursor:pointer;
+    transition:background 0.12s;
+    font-family:'Space Mono',monospace;
+    font-size:9px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink);
+    background:none;
+    border-top:none;border-bottom:none;border-left:none;
+  }
+  .action-btn:last-child { border-right:none; }
+  .action-btn:hover { background:var(--paper); }
+  .action-btn svg { width:18px;height:18px; }
+
+  /* SHUTTER SECTION */
+  .shutter-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 20px;
+    background:var(--white);
+    border: var(--bw) solid var(--border);
+    border-top:none;
+  }
+
+  .shutter-btn {
+    width:64px;height:64px;
+    border: 3px solid var(--border);
+    border-radius:50%;
+    background:var(--white);
+    cursor:pointer;
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    transition:all 0.12s;
+    flex-shrink:0;
+  }
+  .shutter-btn::after {
+    content:'';
+    width:50px;height:50px;
+    border-radius:50%;
+    background:var(--ink);
+    transition:all 0.12s;
+  }
+  .shutter-btn:hover::after { background:var(--accent); transform:scale(0.92); }
+  .shutter-btn:active::after { transform:scale(0.82); }
+
+  .shutter-side {
+    display:flex;flex-direction:column;gap:8px;
+    width:80px;
+  }
+  .shutter-side-btn {
+    font-family:'Space Mono',monospace;
+    font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    display:flex;align-items:center;gap:6px;
+    padding:7px 10px;
+    border: var(--bw) solid var(--border);
+    cursor:pointer;background:none;
+    transition:all 0.12s;color:var(--ink);
+  }
+  .shutter-side-btn:hover { background:var(--ink);color:var(--white); }
+  .shutter-side-btn svg { width:12px;height:12px; }
+
+  /* ADJUSTMENTS */
+  .adj-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+  }
+
+  .adj-cell {
+    padding: 12px 14px;
+    border-right: var(--bw) solid var(--border);
+    border-bottom: var(--bw) solid var(--border);
+  }
+  .adj-cell:nth-child(3n) { border-right:none; }
+  .adj-cell:nth-last-child(-n+3) { border-bottom:none; }
+
+  .adj-label {
+    font-family:'Space Mono',monospace;
+    font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .adj-value { color:var(--ink);font-weight:700; }
+
+  .adj-icon { margin-bottom:4px; }
+  .adj-icon svg { width:14px;height:14px;color:var(--muted); }
+
+  input[type=range] {
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:3px;
+    background:var(--paper);
+    border-radius:0;
+    outline:none;
+    cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:12px;height:12px;
+    background:var(--ink);
+    border-radius:0;
+    cursor:pointer;
+    transition:transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.3); }
+  input[type=range]::-moz-range-thumb {
+    width:12px;height:12px;
+    background:var(--ink);
+    border-radius:0;
+    border:none;
+    cursor:pointer;
+  }
+
+  /* ADJ reset */
+  .reset-btn {
+    font-family:'Space Mono',monospace;
+    font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    border: var(--bw) solid var(--border);
+    padding:4px 10px;
+    cursor:pointer;background:none;color:var(--ink);
+    transition:all 0.12s;
+  }
+  .reset-btn:hover { background:var(--ink);color:var(--white); }
+
+  /* PRESETS GRID */
+  .presets-scroll {
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .presets-scroll::-webkit-scrollbar{display:none;}
+
+  .presets-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    border-top: var(--bw) solid var(--border);
+  }
+
+  .preset-item {
+    border-right: var(--bw) solid var(--border);
+    border-bottom: var(--bw) solid var(--border);
+    padding: 14px 8px 10px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    cursor:pointer;
+    transition:background 0.12s;
+    position:relative;
+  }
+  .preset-item:nth-child(4n) { border-right:none; }
+  .preset-item:hover { background:var(--paper); }
+  .preset-item.active { background:var(--ink); }
+  .preset-item.active .preset-name { color:var(--white); }
+  .preset-item.active .preset-icon { color:var(--white); }
+
+  .preset-icon {
+    width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);
+    border: var(--bw) solid currentColor;
+    border-radius:50%;
+    transition:color 0.12s;
+  }
+  .preset-icon svg { width:15px;height:15px; }
+
+  .preset-name {
+    font-family:'Space Mono',monospace;
+    font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink);
+    text-align:center;
+  }
+
+  /* GALLERY */
+  .gallery-grid {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:0;
+    border-top: var(--bw) solid var(--border);
+    min-height:60px;
+  }
+
+  .gallery-item {
+    position:relative;
+    aspect-ratio:1;
+    border-right: var(--bw) solid var(--border);
+    border-bottom: var(--bw) solid var(--border);
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .gallery-item:nth-child(3n) { border-right:none; }
+  .gallery-item img {
+    width:100%;height:100%;
+    object-fit:cover;
+    transition:transform 0.2s;
+  }
+  .gallery-item:hover img { transform:scale(1.04); }
+
+  .gallery-item .dl-btn {
+    position:absolute;
+    bottom:6px;right:6px;
+    width:26px;height:26px;
+    background:rgba(255,255,255,0.9);
+    border: var(--bw) solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    opacity:0;transition:opacity 0.15s;
+  }
+  .gallery-item:hover .dl-btn { opacity:1; }
+  .gallery-item .dl-btn svg { width:12px;height:12px; }
+
+  .empty-gallery {
+    grid-column:1/-1;
+    display:flex;align-items:center;justify-content:center;
+    padding:30px;
+    font-family:'Space Mono',monospace;
+    font-size:10px;letter-spacing:1.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+
+  /* ZOOM controls */
+  .zoom-row {
+    display:flex;
+    gap:0;
+    border-top: var(--bw) solid var(--border);
+  }
+  .zoom-btn {
+    flex:1;
+    padding:9px;
+    font-family:'Space Mono',monospace;
+    font-size:10px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    border:none;border-right: var(--bw) solid var(--border);
+    background:none;cursor:pointer;color:var(--ink);
+    transition:background 0.12s;
+  }
+  .zoom-btn:last-child{border-right:none;}
+  .zoom-btn:hover{background:var(--paper);}
+  .zoom-btn.active-zoom{background:var(--ink);color:var(--white);}
+
+  /* STATUS BAR */
+  .status-bar {
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--white);
+    border-top: var(--bw) solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 16px;
+    z-index:100;
+  }
+  .status-text {
+    font-family:'Space Mono',monospace;
+    font-size:9px;letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .status-mode {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:16px;letter-spacing:2px;
+    color:var(--ink);
+  }
+
+  /* Mirror mode */
+  .mirrored { transform: scaleX(-1); }
+
+  /* TOAST */
+  .toast {
+    position:fixed;
+    top:70px;left:50%;
+    transform:translateX(-50%) translateY(-10px);
+    background:var(--ink);color:var(--white);
+    font-family:'Space Mono',monospace;
+    font-size:10px;letter-spacing:1.5px;
+    padding:10px 20px;
+    opacity:0;
+    transition:all 0.2s;
+    z-index:999;
+    text-transform:uppercase;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .toast.show {
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.92);
+    z-index:500;
+    flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:20px;
+    gap:12px;
+  }
+  .lightbox.show{display:flex;}
+  .lightbox img {
+    max-width:100%;max-height:80vh;
+    object-fit:contain;
+    border: var(--bw) solid rgba(255,255,255,0.2);
+  }
+  .lb-actions {
+    display:flex;gap:8px;
+  }
+  .lb-btn {
+    font-family:'Space Mono',monospace;
+    font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    padding:10px 20px;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    background:none;color:#fff;cursor:pointer;
+    transition:all 0.12s;
+  }
+  .lb-btn:hover{background:#fff;color:#000;}
+  .lb-btn.danger{border-color:var(--accent);}
+  .lb-btn.danger:hover{background:var(--accent);color:#fff;}
+
+  /* Scroll section */
+  section + section { }
+  section:last-child .card { margin-bottom:0; }
+
+  /* Section spacing */
+  .section-gap { display:flex;flex-direction:column;gap:0; }
+
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon"></div>
+    FRAME
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="tabPhoto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="4"/><path d="M20.94 11A8.994 8.994 0 0018 5.94M5.94 4A9 9 0 1021 12"/>
+      </svg>
+      PHOTO
+    </div>
+    <div class="nav-tab" id="tabGrid" onclick="toggleGrid()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      GRID
+    </div>
+    <div class="nav-tab" id="tabFlip" onclick="flipCamera()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 7H4M4 7l4-4M4 7l4 4M4 17h16M16 21l4-4M16 13l4 4"/>
+      </svg>
+      FLIP
+    </div>
+    <div class="nav-tab" id="tabMirror" onclick="toggleMirror()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3v18M4 7l8-4 8 4M4 17l8 4 8-4M4 12h3M17 12h3"/>
+      </svg>
+      MIRROR
+    </div>
+    <div class="nav-tab" id="tabTimer" onclick="toggleTimer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+      </svg>
+      TIMER
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <img id="lbImg" src="" alt="">
+  <div class="lb-actions">
+    <button class="lb-btn" onclick="downloadLbPhoto()">DOWNLOAD</button>
+    <button class="lb-btn danger" onclick="deleteLbPhoto()">DELETE</button>
+    <button class="lb-btn" onclick="closeLightbox()">CLOSE</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- VIEWFINDER CARD -->
+  <div class="card section-gap">
+    <div class="card-header">
+      <span class="card-title">VIEWFINDER</span>
+      <div style="display:flex;gap:6px;">
+        <span class="badge active-badge" id="qualBadge" onclick="toggleQuality()">MAX</span>
+        <span class="badge active-badge">JPEG</span>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="viewfinder-wrap" id="viewfinderWrap">
+      <video id="cameraFeed" autoplay playsinline muted></video>
+      <canvas id="filterCanvas"></canvas>
+
+      <!-- Overlays -->
+      <div class="vf-overlay">
+        <div class="grid-lines" id="gridLines">
+          <div class="vline2"></div>
+          <div class="hline2"></div>
+        </div>
+        <div class="crosshair"></div>
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="vf-info" id="vfInfo" style="display:none">
+          <div class="info-chip" id="resChip">—</div>
+          <div class="info-chip" id="zoomChip">1×</div>
+        </div>
+      </div>
+
+      <!-- Offline -->
+      <div class="cam-offline" id="camOffline">
+        <div class="offline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
+            <circle cx="12" cy="12" r="4"/><path d="M3 3l18 18M8.34 8.34A5 5 0 1015.66 15.66"/>
+          </svg>
+        </div>
+        <div class="offline-text">GRANT CAMERA ACCESS<br>TO BEGIN SHOOTING</div>
+        <button class="btn-enable" onclick="startCamera()">▶ ENABLE CAMERA</button>
+        <div class="err-msg" id="errMsg">CAMERA NOT AVAILABLE<br>USE HTTPS OR SERVE LOCALLY</div>
+      </div>
+
+      <div class="flash" id="flash"></div>
+    </div>
+
+    <!-- ZOOM ROW -->
+    <div class="zoom-row" id="zoomRow" style="display:none">
+      <button class="zoom-btn active-zoom" data-zoom="1" onclick="setZoom(1,this)">0.5×</button>
+      <button class="zoom-btn" data-zoom="2" onclick="setZoom(2,this)">1×</button>
+      <button class="zoom-btn" data-zoom="3" onclick="setZoom(3,this)">2×</button>
+      <button class="zoom-btn" data-zoom="4" onclick="setZoom(4,this)">4×</button>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+      <button class="action-btn" onclick="saveLastPhoto()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        SAVE
+      </button>
+      <button class="action-btn" onclick="clearAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+        </svg>
+        CLEAR
+      </button>
+
+      <!-- SHUTTER -->
+      <div style="padding:10px;border-right:var(--bw) solid var(--border);">
+        <div class="shutter-btn" id="shutterBtn" onclick="capturePhoto()"></div>
+      </div>
+
+      <button class="action-btn" onclick="resetAdjustments()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 109-9M3 12V8M3 12H7"/>
+        </svg>
+        RESET
+      </button>
+      <button class="action-btn" onclick="saveAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+          <path d="M14 17h7M17.5 14v6"/>
+        </svg>
+        ALL
+      </button>
+    </div>
+  </div>
+
+  <!-- ADJUSTMENTS CARD -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">ADJUSTMENTS</span>
+      <button class="reset-btn" onclick="resetAdjustments()">RESET ALL</button>
+    </div>
+    <div class="adj-grid">
+      <!-- Brightness -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>BRIGHTNESS</span>
+          <span class="adj-value" id="brVal">+0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </div>
+        <input type="range" min="-100" max="100" value="0" id="brightness" oninput="updateAdj()">
+      </div>
+      <!-- Contrast -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>CONTRAST</span>
+          <span class="adj-value" id="coVal">+0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2v20M12 12a10 10 0 010-20" fill="currentColor" stroke="none" opacity="0.4"/>
+          </svg>
+        </div>
+        <input type="range" min="-100" max="200" value="0" id="contrast" oninput="updateAdj()">
+      </div>
+      <!-- Saturation -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>SATURATION</span>
+          <span class="adj-value" id="saVal">+0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M12 2v10M12 12l-6.36 6.36a9 9 0 0012.72 0L12 12z"/>
+          </svg>
+        </div>
+        <input type="range" min="-100" max="100" value="0" id="saturation" oninput="updateAdj()">
+      </div>
+      <!-- Warmth -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>WARMTH</span>
+          <span class="adj-value" id="waVal">+0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M12 2a5 5 0 015 5c0 5-5 10-5 10S7 12 7 7a5 5 0 015-5z"/>
+          </svg>
+        </div>
+        <input type="range" min="-100" max="100" value="0" id="warmth" oninput="updateAdj()">
+      </div>
+      <!-- Vignette -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>VIGNETTE</span>
+          <span class="adj-value" id="viVal">0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <ellipse cx="12" cy="12" rx="10" ry="10"/><ellipse cx="12" cy="12" rx="5" ry="5"/>
+          </svg>
+        </div>
+        <input type="range" min="0" max="100" value="0" id="vignette" oninput="updateAdj()">
+      </div>
+      <!-- Sharpness -->
+      <div class="adj-cell">
+        <div class="adj-label">
+          <span>SHARP</span>
+          <span class="adj-value" id="shVal">+0</span>
+        </div>
+        <div class="adj-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polygon points="12 2 22 22 12 18 2 22 12 2"/>
+          </svg>
+        </div>
+        <input type="range" min="0" max="100" value="0" id="sharpness" oninput="updateAdj()">
+      </div>
+    </div>
+  </div>
+
+  <!-- PRESETS CARD -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">PRESETS</span>
+      <span class="badge">12 FILTERS</span>
+    </div>
+    <div class="presets-scroll">
+      <div class="presets-grid" id="presetsGrid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- GALLERY CARD -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">GALLERY</span>
+      <button class="reset-btn" onclick="clearAll()">CLEAR</button>
+    </div>
+    <div class="gallery-grid" id="galleryGrid">
+      <div class="empty-gallery" id="emptyGallery">NO PHOTOS YET</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="status-text" id="statusLeft">STANDBY</span>
+  <span class="status-mode" id="statusMode">NATURAL</span>
+  <span class="status-text" id="photoCount">0 PHOTOS</span>
+</div>
+
+<script>
+// ==================== STATE ====================
+let stream = null;
+let facing = 'environment'; // back camera
+let mirrored = false;
+let gridOn = false;
+let timerOn = false;
+let timerDelay = 3; // seconds
+let activePreset = 'NATURAL';
+let photos = []; // {dataUrl, name}
+let lbIndex = -1;
+let maxQuality = true;
+let zoomFactor = 1;
+let animFrame = null;
+
+const video = document.getElementById('cameraFeed');
+const canvas = document.getElementById('filterCanvas');
+const ctx = canvas.getContext('2d');
+
+// ==================== PRESETS ====================
+const PRESETS = [
+  {
+    name:'NATURAL', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>`,
+    adj:{ brightness:0,contrast:0,saturation:0,warmth:0,vignette:0,sharpness:0 }
+  },
+  {
+    name:'VIVID', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    adj:{ brightness:10,contrast:30,saturation:60,warmth:10,vignette:20,sharpness:20 }
+  },
+  {
+    name:'WARM', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8C8 10 5.9 16.17 3.82 20H22c-1-3-3-7-5-12z"/></svg>`,
+    adj:{ brightness:5,contrast:10,saturation:20,warmth:60,vignette:15,sharpness:0 }
+  },
+  {
+    name:'COOL', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M12 2v20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>`,
+    adj:{ brightness:5,contrast:15,saturation:-10,warmth:-50,vignette:10,sharpness:10 }
+  },
+  {
+    name:'FADE', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`,
+    adj:{ brightness:20,contrast:-30,saturation:-20,warmth:10,vignette:0,sharpness:0 }
+  },
+  {
+    name:'NOIR', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/></svg>`,
+    adj:{ brightness:-5,contrast:50,saturation:-100,warmth:-10,vignette:50,sharpness:30 }
+  },
+  {
+    name:'CHROME', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>`,
+    adj:{ brightness:5,contrast:40,saturation:30,warmth:-20,vignette:25,sharpness:40 }
+  },
+  {
+    name:'MATTE', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/></svg>`,
+    adj:{ brightness:15,contrast:-20,saturation:-30,warmth:20,vignette:30,sharpness:0 }
+  },
+  {
+    name:'GOLDEN', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 5 5.5.8-4 3.8.9 5.4L12 15.5l-4.9 2.5.9-5.4L4 8.8l5.5-.8z"/></svg>`,
+    adj:{ brightness:10,contrast:20,saturation:40,warmth:80,vignette:35,sharpness:10 }
+  },
+  {
+    name:'SLATE', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1112.71-3.09"/><path d="M11 2h4l-1 8h-2z"/></svg>`,
+    adj:{ brightness:-10,contrast:30,saturation:-40,warmth:-30,vignette:20,sharpness:20 }
+  },
+  {
+    name:'PUNCH', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    adj:{ brightness:0,contrast:60,saturation:80,warmth:0,vignette:40,sharpness:50 }
+  },
+  {
+    name:'DREAMY', icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l2.9-5.7A8.38 8.38 0 015 11.5a8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>`,
+    adj:{ brightness:25,contrast:-25,saturation:20,warmth:30,vignette:45,sharpness:-10 }
+  },
+];
+
+// Build presets grid
+function buildPresets() {
+  const grid = document.getElementById('presetsGrid');
+  grid.innerHTML = '';
+  PRESETS.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'preset-item' + (p.name === 'NATURAL' ? ' active' : '');
+    el.dataset.name = p.name;
+    el.innerHTML = `<div class="preset-icon">${p.icon}</div><div class="preset-name">${p.name}</div>`;
+    el.onclick = () => applyPreset(p.name);
+    grid.appendChild(el);
+  });
+}
+
+function applyPreset(name) {
+  const p = PRESETS.find(x=>x.name===name);
+  if(!p) return;
+  activePreset = name;
+  document.querySelectorAll('.preset-item').forEach(el=>el.classList.toggle('active', el.dataset.name===name));
+  document.getElementById('statusMode').textContent = name;
+
+  // Apply to sliders
+  document.getElementById('brightness').value = p.adj.brightness;
+  document.getElementById('contrast').value = p.adj.contrast;
+  document.getElementById('saturation').value = p.adj.saturation;
+  document.getElementById('warmth').value = p.adj.warmth;
+  document.getElementById('vignette').value = p.adj.vignette;
+  document.getElementById('sharpness').value = p.adj.sharpness;
+  updateAdjLabels();
+  showToast(name + ' APPLIED');
+}
+
+// ==================== CAMERA ====================
+async function startCamera() {
+  document.getElementById('errMsg').classList.remove('show');
+  try {
+    const constraints = {
+      video: {
+        facingMode: facing,
+        width: { ideal: maxQuality ? 4096 : 1920 },
+        height: { ideal: maxQuality ? 3072 : 1080 },
+      },
+      audio: false
+    };
+    if(stream) { stream.getTracks().forEach(t=>t.stop()); }
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('camOffline').style.display = 'none';
+    document.getElementById('vfInfo').style.display = 'flex';
+    document.getElementById('zoomRow').style.display = 'flex';
+    document.getElementById('statusLeft').textContent = 'LIVE';
+
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      document.getElementById('resChip').textContent = video.videoWidth + '×' + video.videoHeight;
+      startLiveFilter();
+    };
+
+    if(mirrored) { video.classList.add('mirrored'); canvas.classList.add('mirrored'); }
+    else { video.classList.remove('mirrored'); canvas.classList.remove('mirrored'); }
+
+    showToast('CAMERA ACTIVE');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('errMsg').classList.add('show');
+    document.getElementById('errMsg').textContent = e.name === 'NotAllowedError'
+      ? 'PERMISSION DENIED — ALLOW CAMERA IN BROWSER SETTINGS'
+      : 'CAMERA NOT AVAILABLE — USE HTTPS OR LOCALHOST';
+    showToast('CAMERA ERROR');
+  }
+}
+
+function startLiveFilter() {
+  if(animFrame) cancelAnimationFrame(animFrame);
+  canvas.style.display = 'block';
+  video.style.display = 'none';
+
+  function draw() {
+    if(!stream) return;
+    if(video.readyState >= 2) {
+      ctx.save();
+      if(mirrored){
+        ctx.translate(canvas.width,0);
+        ctx.scale(-1,1);
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      applyCanvasFilters(ctx, canvas.width, canvas.height);
+    }
+    animFrame = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// CSS filter string for live preview
+function getCSSFilter() {
+  const br = parseInt(document.getElementById('brightness').value);
+  const co = parseInt(document.getElementById('contrast').value);
+  const sa = parseInt(document.getElementById('saturation').value);
+  const wa = parseInt(document.getElementById('warmth').value);
+
+  const brightness = 1 + br/100;
+  const contrast = 1 + co/100;
+  const saturation = 1 + sa/100;
+  // warmth via sepia + hue hack
+  const sepia = wa > 0 ? wa/200 : 0;
+  const hueShift = wa < 0 ? wa/4 : 0;
+
+  return `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) sepia(${sepia}) hue-rotate(${hueShift}deg)`;
+}
+
+function applyCanvasFilters(ctx, w, h) {
+  // Vignette
+  const vig = parseInt(document.getElementById('vignette').value) / 100;
+  if(vig > 0) {
+    const gradient = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.25, w/2,h/2, Math.max(w,h)*0.7);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, `rgba(0,0,0,${vig * 0.75})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0,0,w,h);
+  }
+
+  // Apply CSS filter to canvas element for live preview
+  const filterStr = getCSSFilter();
+  canvas.style.filter = filterStr;
+}
+
+function flipCamera() {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  if(stream) startCamera();
+  showToast(facing === 'user' ? 'FRONT CAMERA' : 'REAR CAMERA');
+}
+
+function toggleMirror() {
+  mirrored = !mirrored;
+  const tab = document.getElementById('tabMirror');
+  tab.classList.toggle('active', mirrored);
+  if(stream) {
+    if(mirrored) { video.classList.add('mirrored'); canvas.classList.add('mirrored'); }
+    else { video.classList.remove('mirrored'); canvas.classList.remove('mirrored'); }
+  }
+  showToast(mirrored ? 'MIRROR ON' : 'MIRROR OFF');
+}
+
+function toggleGrid() {
+  gridOn = !gridOn;
+  document.getElementById('gridLines').classList.toggle('show', gridOn);
+  document.getElementById('tabGrid').classList.toggle('active', gridOn);
+  showToast(gridOn ? 'GRID ON' : 'GRID OFF');
+}
+
+function toggleTimer() {
+  timerOn = !timerOn;
+  document.getElementById('tabTimer').classList.toggle('active', timerOn);
+  showToast(timerOn ? `TIMER ${timerDelay}S ON` : 'TIMER OFF');
+}
+
+function toggleQuality() {
+  maxQuality = !maxQuality;
+  const b = document.getElementById('qualBadge');
+  b.textContent = maxQuality ? 'MAX' : 'STD';
+  if(stream) startCamera();
+  showToast(maxQuality ? 'MAX QUALITY' : 'STANDARD');
+}
+
+function setZoom(level, btn) {
+  zoomFactor = level;
+  document.querySelectorAll('.zoom-btn').forEach(b=>b.classList.remove('active-zoom'));
+  btn.classList.add('active-zoom');
+  const labels = ['0.5×','1×','2×','4×'];
+  document.getElementById('zoomChip').textContent = labels[level-1];
+
+  // Apply zoom via video track if supported
+  if(stream) {
+    const track = stream.getVideoTracks()[0];
+    const caps = track.getCapabilities();
+    if(caps.zoom) {
+      const z = caps.zoom.min + (caps.zoom.max - caps.zoom.min) * ((level-1)/3);
+      track.applyConstraints({ advanced: [{ zoom: z }] });
+    } else {
+      // CSS zoom fallback
+      const scales = [0.75, 1, 1.5, 2.5];
+      canvas.style.transform = `scale(${scales[level-1]})`;
+      canvas.style.transformOrigin = 'center center';
+    }
+  }
+}
+
+// ==================== CAPTURE ====================
+function capturePhoto() {
+  if(!stream) { showToast('ENABLE CAMERA FIRST'); return; }
+
+  if(timerOn) {
+    let count = timerDelay;
+    showToast(count + '...');
+    const interval = setInterval(() => {
+      count--;
+      if(count > 0) showToast(count + '...');
+      else {
+        clearInterval(interval);
+        doCapture();
+      }
+    }, 1000);
+  } else {
+    doCapture();
+  }
+}
+
+function doCapture() {
+  // Full-res capture
+  const capCanvas = document.createElement('canvas');
+  capCanvas.width = video.videoWidth;
+  capCanvas.height = video.videoHeight;
+  const capCtx = capCanvas.getContext('2d');
+
+  capCtx.save();
+  if(mirrored){
+    capCtx.translate(capCanvas.width,0);
+    capCtx.scale(-1,1);
+  }
+  capCtx.drawImage(video, 0, 0);
+  capCtx.restore();
+
+  // Apply warmth overlay
+  const wa = parseInt(document.getElementById('warmth').value);
+  if(wa !== 0) {
+    capCtx.save();
+    if(wa > 0) {
+      capCtx.globalAlpha = wa/400;
+      capCtx.fillStyle = '#FF8C00';
+    } else {
+      capCtx.globalAlpha = Math.abs(wa)/400;
+      capCtx.fillStyle = '#0055AA';
+    }
+    capCtx.fillRect(0,0,capCanvas.width,capCanvas.height);
+    capCtx.restore();
+  }
+
+  // Vignette
+  const vig = parseInt(document.getElementById('vignette').value)/100;
+  if(vig > 0) {
+    const g = capCtx.createRadialGradient(capCanvas.width/2,capCanvas.height/2,Math.min(capCanvas.width,capCanvas.height)*0.25,capCanvas.width/2,capCanvas.height/2,Math.max(capCanvas.width,capCanvas.height)*0.7);
+    g.addColorStop(0,'rgba(0,0,0,0)');
+    g.addColorStop(1,`rgba(0,0,0,${vig*0.75})`);
+    capCtx.fillStyle=g;
+    capCtx.fillRect(0,0,capCanvas.width,capCanvas.height);
+  }
+
+  // Apply CSS filter via offscreen (brightness/contrast/saturation)
+  capCanvas.style.filter = getCSSFilter();
+
+  const quality = maxQuality ? 0.98 : 0.85;
+  const dataUrl = capCanvas.toDataURL('image/jpeg', quality);
+
+  const name = 'FRAME_' + Date.now() + '.jpg';
+  photos.unshift({ dataUrl, name });
+
+  // Flash
+  const flash = document.getElementById('flash');
+  flash.classList.remove('trigger');
+  void flash.offsetWidth;
+  flash.classList.add('trigger');
+  setTimeout(()=>flash.classList.remove('trigger'),500);
+
+  renderGallery();
+  document.getElementById('photoCount').textContent = photos.length + ' PHOTO' + (photos.length!==1?'S':'');
+  showToast('PHOTO SAVED');
+}
+
+// ==================== ADJUSTMENTS ====================
+function updateAdj() {
+  updateAdjLabels();
+}
+
+function updateAdjLabels() {
+  const br = parseInt(document.getElementById('brightness').value);
+  const co = parseInt(document.getElementById('contrast').value);
+  const sa = parseInt(document.getElementById('saturation').value);
+  const wa = parseInt(document.getElementById('warmth').value);
+  const vi = parseInt(document.getElementById('vignette').value);
+  const sh = parseInt(document.getElementById('sharpness').value);
+
+  document.getElementById('brVal').textContent = (br>=0?'+':'')+br;
+  document.getElementById('coVal').textContent = (co>=0?'+':'')+co;
+  document.getElementById('saVal').textContent = (sa>=0?'+':'')+sa;
+  document.getElementById('waVal').textContent = (wa>=0?'+':'')+wa;
+  document.getElementById('viVal').textContent = vi;
+  document.getElementById('shVal').textContent = (sh>=0?'+':'')+sh;
+}
+
+function resetAdjustments() {
+  document.getElementById('brightness').value = 0;
+  document.getElementById('contrast').value = 0;
+  document.getElementById('saturation').value = 0;
+  document.getElementById('warmth').value = 0;
+  document.getElementById('vignette').value = 0;
+  document.getElementById('sharpness').value = 0;
+  updateAdjLabels();
+  activePreset = 'NATURAL';
+  document.querySelectorAll('.preset-item').forEach(el=>el.classList.toggle('active',el.dataset.name==='NATURAL'));
+  document.getElementById('statusMode').textContent = 'NATURAL';
+  showToast('ADJUSTMENTS RESET');
+}
+
+// ==================== GALLERY ====================
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  const empty = document.getElementById('emptyGallery');
+  if(!photos.length) { grid.innerHTML=''; grid.appendChild(empty); return; }
+  grid.innerHTML = '';
+  photos.forEach((p,i)=>{
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}" loading="lazy">
+      <button class="dl-btn" onclick="downloadPhoto(${i},event)" title="Download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </button>`;
+    div.onclick = (e)=>{ if(!e.target.closest('.dl-btn')) openLightbox(i); };
+    grid.appendChild(div);
+  });
+}
+
+function saveLastPhoto() {
+  if(!photos.length) { showToast('NO PHOTOS YET'); return; }
+  downloadPhoto(0, null);
+}
+
+function downloadPhoto(i, e) {
+  if(e) e.stopPropagation();
+  const p = photos[i];
+  const a = document.createElement('a');
+  a.href = p.dataUrl;
+  a.download = p.name;
+  a.click();
+  showToast('DOWNLOADING');
+}
+
+function saveAll() {
+  if(!photos.length) { showToast('NO PHOTOS YET'); return; }
+  photos.forEach((p,i)=>setTimeout(()=>{
+    const a = document.createElement('a');
+    a.href=p.dataUrl; a.download=p.name; a.click();
+  },i*300));
+  showToast('SAVING ALL ' + photos.length + ' PHOTOS');
+}
+
+function clearAll() {
+  if(!photos.length) { showToast('GALLERY EMPTY'); return; }
+  if(confirm('Delete all ' + photos.length + ' photos?')) {
+    photos = [];
+    renderGallery();
+    document.getElementById('photoCount').textContent = '0 PHOTOS';
+    showToast('GALLERY CLEARED');
+  }
+}
+
+// ==================== LIGHTBOX ====================
+function openLightbox(i) {
+  lbIndex = i;
+  document.getElementById('lbImg').src = photos[i].dataUrl;
+  document.getElementById('lightbox').classList.add('show');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  lbIndex = -1;
+}
+
+function downloadLbPhoto() {
+  if(lbIndex<0) return;
+  downloadPhoto(lbIndex, null);
+}
+
+function deleteLbPhoto() {
+  if(lbIndex<0) return;
+  photos.splice(lbIndex,1);
+  renderGallery();
+  document.getElementById('photoCount').textContent = photos.length + ' PHOTO' + (photos.length!==1?'S':'');
+  closeLightbox();
+  showToast('PHOTO DELETED');
+}
+
+// ==================== TOAST ====================
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ==================== INIT ====================
+buildPresets();
+updateAdjLabels();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space') { e.preventDefault(); capturePhoto(); }
+  if(e.code === 'KeyG') toggleGrid();
+  if(e.code === 'KeyM') toggleMirror();
+  if(e.code === 'KeyF') flipCamera();
+  if(e.code === 'Escape') closeLightbox();
+});
+
+// Close lightbox on bg click
+document.getElementById('lightbox').addEventListener('click', function(e){
+  if(e.target===this) closeLightbox();
+});
+</script>
+</body>
+</html>
